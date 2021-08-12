@@ -37,10 +37,6 @@ def train_by_fit(model, epochs, train_gen, test_gen, train_steps, test_steps):
     optimizer = optimizers.Adam(learning_rate)
     lr_info = print_lr(optimizer)
 
-    model.compile(optimizer=optimizer,
-                  loss=crossentropy_with_logits,
-                  metrics=[object_accuracy, object_miou, lr_info])
-
     # trainable_layer = 92
     trainable_layer = 19
     for i in range(trainable_layer):
@@ -48,24 +44,29 @@ def train_by_fit(model, epochs, train_gen, test_gen, train_steps, test_steps):
         model.layers[i].trainable = False
     print('freeze the first {} layers of total {} layers.'.format(trainable_layer, len(model.layers)))
 
+    model.compile(optimizer=optimizer,
+                  loss=crossentropy_with_logits,
+                  metrics=[object_accuracy, object_miou, lr_info])
+
     model.fit(train_gen,
               steps_per_epoch=train_steps,
               validation_data=test_gen,
               validation_steps=test_steps,
               epochs=epochs,
-              callbacks=cbk)
+              callbacks=cbk,
+              shuffle=True)
 
-    # learning_rate = CosineAnnealingLRScheduler(epochs, train_steps, 1e-5, 1e-6, warmth_rate=0.1)
-    # optimizer = optimizers.Adam(learning_rate)
-    # lr_info = print_lr(optimizer)
-    #
-    # model.compile(optimizer=optimizer,
-    #               loss=crossentropy_with_logits,
-    #               metrics=[object_accuracy, object_miou, lr_info])
+    learning_rate = CosineAnnealingLRScheduler(epochs, train_steps, 1e-5, 1e-6, warmth_rate=0.1)
+    optimizer = optimizers.Adam(learning_rate)
+    lr_info = print_lr(optimizer)
 
     for i in range(len(model.layers)):
         model.layers[i].trainable = True
     print('train all layers.')
+
+    model.compile(optimizer=optimizer,
+                  loss=crossentropy_with_logits,
+                  metrics=[object_accuracy, object_miou, lr_info])
 
     model.fit(train_gen,
               steps_per_epoch=train_steps,
@@ -73,11 +74,12 @@ def train_by_fit(model, epochs, train_gen, test_gen, train_steps, test_steps):
               validation_steps=test_steps,
               epochs=epochs * 2,
               initial_epoch=epochs,
-              callbacks=cbk)
+              callbacks=cbk,
+              shuffle=True)
 
 
 if __name__ == '__main__':
-    os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
     gpus = tf.config.experimental.list_physical_devices("GPU")
     if gpus:
